@@ -1,0 +1,6 @@
+{
+  "title": "Dummy Video Storybook",
+  "author": "Local Demo",
+  "description": "Nested format. Put one MP4 in each pages/<id>/ folder.",
+  "page_order": ["001", "002", "003", "004"]
+}
