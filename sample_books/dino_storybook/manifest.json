@@ -1,14 +1,14 @@
 {
   "title": "Dino Storybook",
   "author": "A11y Research Team ",
-  "description": "Flat format. Use id.video.* naming (for example: 001.video.mp4).",
+  "description": "Flat format. Use id.extension naming (for example: 001.mp4).",
   "page_order": [
-    "001.video.mp4",
-    "002.video.mp4",
-    "003.video.mp4",
-    "004.video.mp4",
-    "005.video.mp4",
-    "006.video.mp4",
-    "007.video.mp4"
+    "001.mp4",
+    "002.mp4",
+    "003.mp4",
+    "004.mp4",
+    "005.mp4",
+    "006.mp4",
+    "007.mp4"
   ]
 }

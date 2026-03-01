@@ -189,6 +189,33 @@ def _inject_text_size_css(font_size: int, stage_width_px: int) -> None:
             box-shadow: none;
         }}
 
+        .storybook-image-caption-wrap {{
+            display: flex;
+            justify-content: center;
+            margin-top: -6.9rem;
+            margin-bottom: 0.1rem;
+            position: relative;
+            z-index: 5;
+            pointer-events: none;
+        }}
+
+        .storybook-image-caption {{
+            max-width: calc(min(100%, var(--reader-stage-width)) - 1.15rem);
+            background: rgba(16, 22, 42, 0.52);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 10px;
+            padding: 0.5rem 0.72rem 0.55rem;
+            font-size: calc(var(--video-caption-size) - 2px);
+            line-height: 1.12;
+            text-align: center;
+            font-family: "Comic Sans MS", "Chalkboard SE", "Marker Felt", cursive;
+            font-weight: 700;
+            color: #fffef7;
+            text-shadow: 1px 1px 0 rgba(15, 12, 20, 0.65), 0 0 6px rgba(0, 0, 0, 0.22);
+            letter-spacing: 0.01em;
+            box-shadow: none;
+        }}
+
         @media (max-width: 900px) {{
             .storybook-video-caption-wrap {{
                 margin-top: -7.8rem;
@@ -198,6 +225,16 @@ def _inject_text_size_css(font_size: int, stage_width_px: int) -> None:
             .storybook-video-caption {{
                 max-width: calc(100% - 1.2rem);
                 padding: 0.42rem 0.65rem 0.5rem;
+            }}
+
+            .storybook-image-caption-wrap {{
+                margin-top: -5.1rem;
+                margin-bottom: 0.08rem;
+            }}
+
+            .storybook-image-caption {{
+                max-width: calc(100% - 1.2rem);
+                padding: 0.42rem 0.6rem 0.5rem;
             }}
         }}
 
@@ -528,12 +565,17 @@ def _render_page_text(page: Page, show_empty_warning: bool = True) -> None:
     st.markdown(text)
 
 
-def _render_video_caption(page: Page, show_empty_warning: bool = True) -> None:
-    """Render colorful, comic-style caption text over the lower part of video pages."""
+def _caption_text_from_page(
+    page: Page,
+    *,
+    missing_text_warning: str,
+    show_empty_warning: bool,
+) -> str | None:
+    """Return cleaned caption text for overlay rendering."""
     if page.text_path is None:
         if show_empty_warning:
-            st.warning("This video page has no text.")
-        return
+            st.warning(missing_text_warning)
+        return None
 
     text, text_warnings = read_page_text(page)
     for warning in text_warnings:
@@ -542,7 +584,7 @@ def _render_video_caption(page: Page, show_empty_warning: bool = True) -> None:
     if not text.strip():
         if show_empty_warning:
             st.warning("Text file is empty or unreadable.")
-        return
+        return None
 
     cleaned_lines: list[str] = []
     for raw_line in text.splitlines():
@@ -559,16 +601,58 @@ def _render_video_caption(page: Page, show_empty_warning: bool = True) -> None:
     if not caption_text:
         if show_empty_warning:
             st.warning("Text file is empty or unreadable.")
-        return
+        return None
+    return caption_text
 
+
+def _render_caption_overlay(
+    caption_text: str,
+    *,
+    wrap_class: str,
+    caption_class: str,
+) -> None:
     safe_caption = html.escape(caption_text).replace("\n", "<br>")
     st.markdown(
         (
-            '<div class="storybook-video-caption-wrap">'
-            f'<div class="storybook-video-caption">{safe_caption}</div>'
+            f'<div class="{wrap_class}">'
+            f'<div class="{caption_class}">{safe_caption}</div>'
             "</div>"
         ),
         unsafe_allow_html=True,
+    )
+
+
+def _render_video_caption(page: Page, show_empty_warning: bool = True) -> None:
+    """Render colorful, comic-style caption text over the lower part of video pages."""
+    caption_text = _caption_text_from_page(
+        page,
+        missing_text_warning="This video page has no text.",
+        show_empty_warning=show_empty_warning,
+    )
+    if caption_text is None:
+        return
+
+    _render_caption_overlay(
+        caption_text,
+        wrap_class="storybook-video-caption-wrap",
+        caption_class="storybook-video-caption",
+    )
+
+
+def _render_image_caption(page: Page, show_empty_warning: bool = True) -> None:
+    """Render caption text inside the lower part of image pages."""
+    caption_text = _caption_text_from_page(
+        page,
+        missing_text_warning="This image page has no text.",
+        show_empty_warning=show_empty_warning,
+    )
+    if caption_text is None:
+        return
+
+    _render_caption_overlay(
+        caption_text,
+        wrap_class="storybook-image-caption-wrap",
+        caption_class="storybook-image-caption",
     )
 
 
@@ -634,7 +718,7 @@ def _render_page(
     ):
         if page.video_path is not None and not side_by_side:
             _render_page_media(page, playback_mode=playback_mode)
-            _render_video_caption(page, show_empty_warning=True)
+            _render_video_caption(page, show_empty_warning=False)
             return
 
         if side_by_side:
@@ -642,11 +726,12 @@ def _render_page(
             with image_col:
                 _render_page_media(page, playback_mode=playback_mode)
             with text_col:
-                _render_page_text(page, show_empty_warning=True)
+                _render_page_text(page, show_empty_warning=False)
             return
 
         _render_page_media(page, playback_mode=playback_mode)
-        _render_page_text(page, show_empty_warning=True)
+        if page.image_path is not None and page.image_path.exists():
+            _render_image_caption(page, show_empty_warning=False)
 
 
 def main() -> None:

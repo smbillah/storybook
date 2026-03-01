@@ -2,6 +2,6 @@
   "title": "Demo Storybook",
   "author": "Research Team",
   "description": "A tiny local sample book for interviews and demos.",
-  "cover_image": "000.video.png",
+  "cover_image": "000.png",
   "page_order": ["001", "002"]
 }
