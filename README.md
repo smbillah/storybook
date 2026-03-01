@@ -31,24 +31,22 @@ Small local-only Streamlit app for reading storybook/e-book folders from disk.
 
 A runnable sample exists at:
 
-- `sample_books/demo_book/`
-- `sample_books/storybook/`
-- `sample_books/video_storybook/`
 - `sample_books/dino_storybook/`
-- `sample_books/dummy_video_storybook/`
+- `sample_books/dino_video_storybook/`
+- `sample_books/squirrel_book/`
 
-The still-image sample books (`demo_book`, `storybook`) are now flat (`id.extension`).
+All current sample books are flat (`id.extension`), with optional `id.md` caption files.
 
 ### Add your MP4 files
 
 You can use either of these conventions:
 
-1. Flat format (`sample_books/video_storybook/`):
+1. Flat format (`sample_books/dino_video_storybook/`):
    - `001.mp4`
    - `002.mp4`
    - `003.mp4`
    - `004.mp4`
-2. Nested format (`sample_books/dummy_video_storybook/pages/`):
+2. Nested format (still supported by the loader):
    - `001/001.mp4`
    - `002/002.mp4`
    - `003/003.mp4`
@@ -83,10 +81,4 @@ pip install -r requirements.txt
 
 ```bash
 streamlit run app.py
-```
-
-## Run tests
-
-```bash
-pytest -q
 ```

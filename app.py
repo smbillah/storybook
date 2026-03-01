@@ -20,7 +20,7 @@ from storybook_loader import (
 )
 
 st.set_page_config(page_title="Storybook Reader", layout="wide")
-DEFAULT_SAMPLE_BOOK = "dino_storybook"
+DEFAULT_SAMPLE_BOOK = "squirrel_book"
 AUTOPLAY_NON_VIDEO_DELAY_SECONDS = 4
 FRAME_CHROME_WIDTH_PX = 40
 MIN_FRAME_WIDTH_PX = 360
