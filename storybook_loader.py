@@ -48,7 +48,7 @@ class Book:
     warnings: list[str] = field(default_factory=list)
 
 
-def list_sample_books(sample_root: str | Path = "sample_books") -> list[Path]:
+def list_sample_books(sample_root: str | Path = "Books") -> list[Path]:
     """Return available sample-book directories sorted by natural order."""
     root = Path(sample_root)
     if not root.exists() or not root.is_dir():

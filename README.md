@@ -5,7 +5,7 @@ Small local-only Streamlit app for reading storybook/e-book folders from disk.
 ## What it supports
 
 - Two book-loading paths:
-  - Choose from subfolders in `sample_books/` (defaults to `dino_storybook`).
+  - Choose from subfolders in `Books/` (defaults to `dino_storybook`).
 - Two book folder formats:
   - Format A (flat): `001.png` + `001.md` at the book root.
   - Format B (nested): `pages/001/001.png` + `pages/001/text.md`.
@@ -31,9 +31,9 @@ Small local-only Streamlit app for reading storybook/e-book folders from disk.
 
 A runnable sample exists at:
 
-- `sample_books/dino_storybook/`
-- `sample_books/dino_video_storybook/`
-- `sample_books/squirrel_book/`
+- `Books/dino_storybook/`
+- `Books/dino_video_storybook/`
+- `Books/squirrel_book/`
 
 All current sample books are flat (`id.extension`), with optional `id.md` caption files.
 
@@ -41,7 +41,7 @@ All current sample books are flat (`id.extension`), with optional `id.md` captio
 
 You can use either of these conventions:
 
-1. Flat format (`sample_books/dino_video_storybook/`):
+1. Flat format (`Books/dino_video_storybook/`):
    - `001.mp4`
    - `002.mp4`
    - `003.mp4`

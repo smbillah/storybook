@@ -735,7 +735,7 @@ def _render_page(
 
 
 def main() -> None:
-    sample_paths = list_sample_books("sample_books")
+    sample_paths = list_sample_books("Books")
     sample_names = [path.name for path in sample_paths]
 
     if "sample_book_name" not in st.session_state:
@@ -763,7 +763,7 @@ def main() -> None:
         if sample_names:
             st.selectbox("Sample books", options=sample_names, key="sample_book_name")
         else:
-            st.info("No sample books found under sample_books/.")
+            st.info("No sample books found under Books/.")
 
     selected_book_path = _current_book_path(
         sample_paths=sample_paths,
