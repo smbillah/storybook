@@ -16,3 +16,9 @@ venv/
 .idea/
 .vscode/
 "AI Storybook Generator/.env"
+.env
+Books/**/*.png
+.env
+Books/**/*.png
+generated_books/
+*.png

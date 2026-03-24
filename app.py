@@ -1,4 +1,4 @@
-"""Local Streamlit app for reading storybook folders from disk."""
+"""Local Streamlit app for reading storybook folders from disk, with AI generator tab."""
 
 from __future__ import annotations
 
@@ -18,14 +18,18 @@ from storybook_loader import (
     load_book,
     read_page_text,
 )
+from storybook_streamlit import render_storybook_generator
+
 
 st.set_page_config(page_title="Storybook Reader", layout="wide")
+
 DEFAULT_SAMPLE_BOOK = "squirrel_book"
 AUTOPLAY_NON_VIDEO_DELAY_SECONDS = 4
 FRAME_CHROME_WIDTH_PX = 40
 MIN_FRAME_WIDTH_PX = 360
 MAX_FRAME_WIDTH_PX = 1200
 DEFAULT_STAGE_WIDTH_PX = 1120
+BOOKS_ROOT = Path("Books")
 
 
 def _current_book_path(
@@ -35,7 +39,6 @@ def _current_book_path(
     for sample_path in sample_paths:
         if sample_path.name == selected_sample_name:
             return sample_path
-
     return None
 
 
@@ -45,39 +48,8 @@ def _inject_text_size_css(font_size: int, stage_width_px: int) -> None:
         f"""
         <style>
         :root {{
-            --paper: #ffffff;
-            --ink: #2b1f18;
-            --accent: #7a4e2d;
-            --panel: #ffffff;
-            --panel-border: #e6e6e6;
             --reader-stage-width: {stage_width_px}px;
             --video-caption-size: {caption_font_size}px;
-        }}
-
-        .stApp {{
-            background: #ffffff;
-            color: var(--ink);
-        }}
-
-        [data-testid="stAppViewContainer"] .main .block-container {{
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
-            max-width: 1400px;
-        }}
-
-        [data-testid="stAppViewContainer"] .main > div {{
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
-        }}
-
-        [data-testid="stSidebar"] {{
-            background: #ffffff;
-            border-right: 1px solid #e6e6e6;
-        }}
-
-        footer {{
-            visibility: hidden;
-            height: 0;
         }}
 
         .storybook-nav-meta {{
@@ -95,71 +67,6 @@ def _inject_text_size_css(font_size: int, stage_width_px: int) -> None:
             margin-bottom: 0.2rem;
             color: #7f6149;
             font-size: 0.86rem;
-        }}
-
-        [data-testid="stCaptionContainer"] p {{
-            margin-top: 0.15rem;
-            margin-bottom: 0.4rem;
-            color: #6f4f3a;
-            font-weight: 600;
-        }}
-
-        section.main div[data-testid="stMarkdownContainer"] p,
-        section.main div[data-testid="stMarkdownContainer"] li {{
-            font-size: {font_size}px;
-            line-height: 1.6;
-            font-family: "Palatino Linotype", "Book Antiqua", "Times New Roman", serif;
-            color: #2f231b;
-        }}
-
-        section.main [data-testid="stVerticalBlockBorderWrapper"] {{
-            background: #ffffff;
-            border: 1px solid #dfdfdf;
-            border-radius: 16px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-            padding: 0.7rem 0.95rem;
-            margin-bottom: 0.5rem;
-        }}
-
-        section.main .st-key-reader_toolbar,
-        section.main .st-key-reader_page,
-        section.main .st-key-reader_cover {{
-            width: min(100%, var(--reader-stage-width)) !important;
-            margin-left: auto !important;
-            margin-right: auto !important;
-        }}
-
-        section.main [data-testid="stImage"], section.main [data-testid="stVideo"] {{
-            width: 100% !important;
-            max-width: 100%;
-            display: flex;
-            justify-content: center;
-            margin: 0.1rem auto;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 6px 24px rgba(47, 28, 16, 0.16);
-        }}
-
-        section.main [data-testid="stImage"] > div,
-        section.main [data-testid="stVideo"] > div {{
-            width: fit-content !important;
-            max-width: 100%;
-        }}
-
-        section.main [data-testid="stImage"] img {{
-            width: auto !important;
-            max-width: 100%;
-            height: auto !important;
-            display: block;
-            margin: 0 auto;
-        }}
-
-        section.main [data-testid="stVideo"] video {{
-            width: auto !important;
-            max-width: 100%;
-            height: auto !important;
-            display: block;
-            margin: 0 auto;
         }}
 
         .storybook-video-caption-wrap {{
@@ -240,42 +147,7 @@ def _inject_text_size_css(font_size: int, stage_width_px: int) -> None:
 
         [data-testid="stButton"] > button {{
             border-radius: 999px;
-            border: 1px solid #d3d3d3;
-            background: #ffffff;
-            color: #3d2719;
             font-weight: 700;
-            padding: 0.2rem 0.55rem;
-        }}
-
-        section.main [data-testid="stCheckbox"] label {{
-            white-space: nowrap;
-        }}
-
-        section.main [data-testid="stCheckbox"] [data-testid="stMarkdownContainer"] p {{
-            margin: 0;
-            font-size: 0.92rem;
-        }}
-
-        section.main .st-key-reader_toolbar [data-testid="stSegmentedControl"] {{
-            width: fit-content;
-            margin-left: auto;
-        }}
-
-        section.main .st-key-reader_toolbar [data-testid="stSegmentedControl"] [role="radiogroup"] {{
-            flex-wrap: nowrap !important;
-            white-space: nowrap;
-            gap: 0.15rem;
-        }}
-
-        section.main .st-key-reader_toolbar [data-testid="stSegmentedControl"] label {{
-            min-width: 1.65rem;
-            padding-left: 0.28rem;
-            padding-right: 0.28rem;
-        }}
-
-        [data-testid="stButton"] > button:disabled {{
-            opacity: 0.4;
-            border-color: #cbb79f;
         }}
         </style>
         """,
@@ -285,7 +157,6 @@ def _inject_text_size_css(font_size: int, stage_width_px: int) -> None:
 
 @lru_cache(maxsize=256)
 def _read_mp4_duration_seconds(video_path: str) -> float | None:
-    """Return MP4 duration in seconds from `mvhd`, or None when unavailable."""
     path = Path(video_path)
     try:
         with path.open("rb") as file:
@@ -306,11 +177,11 @@ def _read_mp4_duration_seconds(video_path: str) -> float | None:
             if len(version_byte) != 1:
                 return None
             version = version_byte[0]
-            file.read(3)  # flags
+            file.read(3)
 
             if version == 1:
-                file.read(8)  # creation time
-                file.read(8)  # modification time
+                file.read(8)
+                file.read(8)
                 timescale_bytes = file.read(4)
                 duration_bytes = file.read(8)
                 if len(timescale_bytes) != 4 or len(duration_bytes) != 8:
@@ -318,8 +189,8 @@ def _read_mp4_duration_seconds(video_path: str) -> float | None:
                 timescale = struct.unpack(">I", timescale_bytes)[0]
                 duration = struct.unpack(">Q", duration_bytes)[0]
             else:
-                file.read(4)  # creation time
-                file.read(4)  # modification time
+                file.read(4)
+                file.read(4)
                 timescale_bytes = file.read(4)
                 duration_bytes = file.read(4)
                 if len(timescale_bytes) != 4 or len(duration_bytes) != 4:
@@ -334,13 +205,10 @@ def _read_mp4_duration_seconds(video_path: str) -> float | None:
         return None
 
 
-def _find_mp4_box(
-    file_obj, container_end: int, target_box_type: bytes
-) -> tuple[int, int] | None:
+def _find_mp4_box(file_obj, container_end: int, target_box_type: bytes) -> tuple[int, int] | None:
     for box_type, payload_start, payload_end in _iter_mp4_boxes(file_obj, container_end):
         if box_type == target_box_type:
             return payload_start, payload_end
-
     return None
 
 
@@ -377,7 +245,6 @@ def _iter_mp4_boxes(file_obj, container_end: int):
 
 @lru_cache(maxsize=256)
 def _read_mp4_video_dimensions(video_path: str) -> tuple[int, int] | None:
-    """Return MP4 video dimensions as `(width, height)` when available."""
     path = Path(video_path)
     try:
         with path.open("rb") as file:
@@ -475,11 +342,7 @@ def _infer_frame_width(page: Page | None) -> int | str:
     return max(MIN_FRAME_WIDTH_PX, min(MAX_FRAME_WIDTH_PX, inferred))
 
 
-def _autoplay_seconds_for_item(
-    item_kind: str,
-    page: Page | None,
-    non_video_delay_seconds: int,
-) -> float:
+def _autoplay_seconds_for_item(item_kind: str, page: Page | None, non_video_delay_seconds: int) -> float:
     if item_kind == "page" and page is not None and page.video_path is not None:
         if page.video_path.exists():
             duration = _read_mp4_duration_seconds(str(page.video_path.resolve()))
@@ -489,12 +352,7 @@ def _autoplay_seconds_for_item(
 
 
 @st.fragment(run_every="1s")
-def _autoplay_tick(
-    enabled: bool,
-    current_index: int,
-    max_index: int,
-    wait_seconds: float,
-) -> None:
+def _autoplay_tick(enabled: bool, current_index: int, max_index: int, wait_seconds: float) -> None:
     if not enabled or max_index <= 0:
         return
 
@@ -516,9 +374,6 @@ def _autoplay_tick(
 
 
 def _render_page_media(page: Page, playback_mode: str) -> None:
-    dimensions = _page_media_dimensions(page)
-    media_width = dimensions[0] if dimensions is not None else None
-
     if page.video_path is not None:
         if not page.video_path.exists():
             st.warning(f"Video file missing: {page.video_path}")
@@ -530,7 +385,6 @@ def _render_page_media(page: Page, playback_mode: str) -> None:
             format="video/mp4",
             autoplay=is_auto or is_loop,
             loop=is_loop,
-            width=media_width if media_width is not None else "stretch",
         )
         return
 
@@ -538,7 +392,7 @@ def _render_page_media(page: Page, playback_mode: str) -> None:
         if not page.image_path.exists():
             st.warning(f"Image file missing: {page.image_path}")
             return
-        st.image(str(page.image_path), width=media_width if media_width is not None else "content")
+        st.image(str(page.image_path), use_container_width=True)
         return
 
     st.warning("This page has no image or video.")
@@ -565,13 +419,7 @@ def _render_page_text(page: Page, show_empty_warning: bool = True) -> None:
     st.markdown(text)
 
 
-def _caption_text_from_page(
-    page: Page,
-    *,
-    missing_text_warning: str,
-    show_empty_warning: bool,
-) -> str | None:
-    """Return cleaned caption text for overlay rendering."""
+def _caption_text_from_page(page: Page, *, missing_text_warning: str, show_empty_warning: bool) -> str | None:
     if page.text_path is None:
         if show_empty_warning:
             st.warning(missing_text_warning)
@@ -605,12 +453,7 @@ def _caption_text_from_page(
     return caption_text
 
 
-def _render_caption_overlay(
-    caption_text: str,
-    *,
-    wrap_class: str,
-    caption_class: str,
-) -> None:
+def _render_caption_overlay(caption_text: str, *, wrap_class: str, caption_class: str) -> None:
     safe_caption = html.escape(caption_text).replace("\n", "<br>")
     st.markdown(
         (
@@ -623,7 +466,6 @@ def _render_caption_overlay(
 
 
 def _render_video_caption(page: Page, show_empty_warning: bool = True) -> None:
-    """Render colorful, comic-style caption text over the lower part of video pages."""
     caption_text = _caption_text_from_page(
         page,
         missing_text_warning="This video page has no text.",
@@ -640,7 +482,6 @@ def _render_video_caption(page: Page, show_empty_warning: bool = True) -> None:
 
 
 def _render_image_caption(page: Page, show_empty_warning: bool = True) -> None:
-    """Render caption text inside the lower part of image pages."""
     caption_text = _caption_text_from_page(
         page,
         missing_text_warning="This image page has no text.",
@@ -683,21 +524,14 @@ def _page_number(index: int, items: list[tuple[str, Page | None]]) -> int:
 
 
 def _render_cover(book: Book) -> None:
-    with st.container(
-        border=True,
-        key="reader_cover",
-        width="stretch",
-        horizontal_alignment="center",
-    ):
+    with st.container():
         st.subheader("Cover")
         cover_path = book.metadata.cover_image_path
         if cover_path is None or not cover_path.exists():
             st.warning("Cover image is configured but missing.")
             return
 
-        cover_dimensions = _read_image_dimensions(str(cover_path.resolve()))
-        cover_width = cover_dimensions[0] if cover_dimensions is not None else "content"
-        st.image(str(cover_path), width=cover_width)
+        st.image(str(cover_path), use_container_width=True)
         st.markdown(f"### {book.metadata.title}")
         if book.metadata.author:
             st.markdown(f"**Author:** {book.metadata.author}")
@@ -705,17 +539,8 @@ def _render_cover(book: Book) -> None:
             st.markdown(book.metadata.description)
 
 
-def _render_page(
-    page: Page,
-    side_by_side: bool,
-    playback_mode: str,
-) -> None:
-    with st.container(
-        border=True,
-        width="stretch",
-        key="reader_page",
-        horizontal_alignment="center",
-    ):
+def _render_page(page: Page, side_by_side: bool, playback_mode: str) -> None:
+    with st.container():
         if page.video_path is not None and not side_by_side:
             _render_page_media(page, playback_mode=playback_mode)
             _render_video_caption(page, show_empty_warning=False)
@@ -734,17 +559,22 @@ def _render_page(
             _render_image_caption(page, show_empty_warning=False)
 
 
-def main() -> None:
-    sample_paths = list_sample_books("Books")
+def render_storybook_library() -> None:
+    sample_paths = list_sample_books(BOOKS_ROOT)
     sample_names = [path.name for path in sample_paths]
 
-    if "sample_book_name" not in st.session_state:
+    if "library_sample_book_name" not in st.session_state:
         default_sample = (
-            DEFAULT_SAMPLE_BOOK
-            if DEFAULT_SAMPLE_BOOK in sample_names
-            else (sample_names[0] if sample_names else "")
+            st.session_state.get("library_selected_book")
+            if st.session_state.get("library_selected_book") in sample_names
+            else (
+                DEFAULT_SAMPLE_BOOK
+                if DEFAULT_SAMPLE_BOOK in sample_names
+                else (sample_names[0] if sample_names else "")
+            )
         )
-        st.session_state.sample_book_name = default_sample
+        st.session_state.library_sample_book_name = default_sample
+
     if "current_item_index" not in st.session_state:
         st.session_state.current_item_index = 0
     if "active_book_key" not in st.session_state:
@@ -758,22 +588,26 @@ def main() -> None:
     if "playback_mode" not in st.session_state:
         st.session_state.playback_mode = "off"
 
+    if st.session_state.get("library_selected_book") in sample_names:
+        st.session_state.library_sample_book_name = st.session_state["library_selected_book"]
+
     with st.sidebar:
         st.header("Book")
         if sample_names:
-            st.selectbox("Sample books", options=sample_names, key="sample_book_name")
+            st.selectbox("Sample books", options=sample_names, key="library_sample_book_name")
         else:
             st.info("No sample books found under Books/.")
 
     selected_book_path = _current_book_path(
         sample_paths=sample_paths,
-        selected_sample_name=st.session_state.sample_book_name,
+        selected_sample_name=st.session_state.library_sample_book_name,
     )
 
     if selected_book_path is None:
         st.info("Select a sample book in the sidebar.")
         return
 
+    st.session_state["library_selected_book"] = selected_book_path.name
     book = load_book(selected_book_path)
 
     book_key = str(book.root_path.resolve()) if book.root_path.exists() else str(book.root_path)
@@ -830,12 +664,9 @@ def main() -> None:
     stage_width_px = page_frame_width if isinstance(page_frame_width, int) else DEFAULT_STAGE_WIDTH_PX
     _inject_text_size_css(font_size, stage_width_px=stage_width_px)
 
-    with st.container(
-        border=True,
-        width="stretch",
-        key="reader_toolbar",
-        horizontal_alignment="center",
-    ):
+    st.header("Generated Storybooks")
+
+    with st.container():
         nav_first, nav_prev, nav_meta, nav_next, nav_last = st.columns(
             [0.55, 0.55, 6.4, 0.55, 0.55],
             gap="small",
@@ -849,20 +680,16 @@ def main() -> None:
         current_page_for_autoplay: Page | None = None
 
         with nav_first:
-            if st.button("«", width="stretch", disabled=at_first, help="First page"):
+            if st.button("«", use_container_width=True, disabled=at_first, help="First page", key="reader_first"):
                 st.session_state.current_item_index = 0
                 st.rerun()
         with nav_prev:
-            if st.button("‹", width="stretch", disabled=at_first, help="Previous page"):
-                st.session_state.current_item_index = max(
-                    0, st.session_state.current_item_index - 1
-                )
+            if st.button("‹", use_container_width=True, disabled=at_first, help="Previous page", key="reader_prev"):
+                st.session_state.current_item_index = max(0, st.session_state.current_item_index - 1)
                 st.rerun()
         with nav_meta:
             if items:
-                current_kind, current_page_for_autoplay = items[
-                    st.session_state.current_item_index
-                ]
+                current_kind, current_page_for_autoplay = items[st.session_state.current_item_index]
                 if has_video_pages:
                     meta_col, autoplay_col = st.columns([2.7, 1.3], gap="small")
                     with meta_col:
@@ -892,7 +719,6 @@ def main() -> None:
                             }[mode],
                             help="⏹ Off, ▶ Auto-next, ↻ Loop current video",
                             label_visibility="collapsed",
-                            width="content",
                         )
                     playback_mode = selected_mode or "off"
                 else:
@@ -929,13 +755,11 @@ def main() -> None:
                     wait_seconds=autoplay_wait_seconds,
                 )
         with nav_next:
-            if st.button("›", width="stretch", disabled=at_last, help="Next page"):
-                st.session_state.current_item_index = min(
-                    max_index, st.session_state.current_item_index + 1
-                )
+            if st.button("›", use_container_width=True, disabled=at_last, help="Next page", key="reader_next"):
+                st.session_state.current_item_index = min(max_index, st.session_state.current_item_index + 1)
                 st.rerun()
         with nav_last:
-            if st.button("»", width="stretch", disabled=at_last, help="Last page"):
+            if st.button("»", use_container_width=True, disabled=at_last, help="Last page", key="reader_last"):
                 st.session_state.current_item_index = max_index
                 st.rerun()
 
@@ -951,6 +775,18 @@ def main() -> None:
             side_by_side=side_by_side,
             playback_mode=playback_mode,
         )
+
+
+def main() -> None:
+    st.title("Storybook Reader")
+
+    tab_library, tab_generator = st.tabs(["Generated Storybooks", "AI Storybook Generator"])
+
+    with tab_library:
+        render_storybook_library()
+
+    with tab_generator:
+        render_storybook_generator(books_root=BOOKS_ROOT)
 
 
 if __name__ == "__main__":
